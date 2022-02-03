@@ -2,19 +2,30 @@ import sys
 import pickle
 from urlextract import URLExtract
 import requests
+from loguru import logger
+
 
 def main():
+
+    logger.add('debug.log', format="{time},{level},{message}", level="DEBUG", rotation="5 min", retention="20 min")
+
     try:
         file_name = sys.argv[1]
+        extracted_data = extract_data(file_name)
+        url_list = parse_url(extracted_data)
+
+        while True:
+            checked_urls = check_url(url_list)
+
+            for i in checked_urls:
+                print(len(i))
+
     except IndexError:
-        print('Incorrect name of the file. Perhaps you wanted to run the command as "python main.py file_to_parse.dat"?')
+        logger.error("User didn't provide a filename as a command line argument.")
 
-    extracted_data = extract_data(file_name)
-    url_list = parse_url(extracted_data)
-    checked_urls = check_url(url_list)
+    except Exception as e:
+        logger.error(e)
 
-    for i in checked_urls:
-        print(len(i))
 
 # Extracting raw strings from the given file and addind them to a list for further processing
 def extract_data(filename: str) -> list:
@@ -25,25 +36,34 @@ def extract_data(filename: str) -> list:
         with open(filename, 'rb') as file:
             data = pickle.load(file)
         return data
+
     except pickle.UnpicklingError:
-        print(f'Unable to extract data from this file: {filename}')
+        logger.error(f'File -{filename}- can not be unpickled.')
         return None
+
+    except Exception as e:
+        logger.error(e)
+        return None
+
 
 # Parsing the data to find all existing URLs from the extracted data
 def parse_url(data: list) -> list:
 
-    if data is not None:
-        urls = []
-        url_extractor = URLExtract()
+    try:
+        if data is not None:
+            urls = []
+            url_extractor = URLExtract()
 
-        for string in data:
-            url = url_extractor.find_urls(string)
-            if url:
-                urls.append(url)
-        
-        return urls
-    else:
-        return None
+            for string in data:
+                url = url_extractor.find_urls(string)
+                if url:
+                    urls.append(url)
+            
+            return urls
+        else:
+            return None
+    except Exception as e:
+        logger.error(e)
     
 # Checking the acccessibility of the parsed URLs and their endpoint addresses
 def check_url(parsed_list: list) -> list[dict]:
@@ -61,11 +81,11 @@ def check_url(parsed_list: list) -> list[dict]:
                 else:
                     checked_urls[url[0]] = response.status_code
             except requests.exceptions.MissingSchema as SchemaError:
-                print(url, 'SchemaError: This is not a valid URL address.')
+                logger.info(f'Schema Error, {url} is not a valid URL')
             except requests.exceptions.ConnectTimeout as TimeoutError:
-                print(url, 'TimeoutError: Server is not responding') 
+                logger.info(f'Timeout Error, {url} is not responding') 
             except Exception as e:
-                print(e, url)
+                logger.info(f'{e}, url: {url}')
 
         return [checked_urls, endpoint_urls]
 

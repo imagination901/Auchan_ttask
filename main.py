@@ -1,3 +1,4 @@
+import os
 import sys
 import pickle
 from urlextract import URLExtract
@@ -6,14 +7,16 @@ from loguru import logger
 
 
 def main():
-
-    logger.add('debug.log', format="{time},{level},{message}", level="DEBUG", rotation="5 min", retention="20 min")
+    # Initializing the logger instance with required rotation and retention variables
+    logger.add('debug.log', format="{time},{level},{message}", 
+               level="DEBUG", rotation="5 min", retention="20 min")
 
     try:
-        file_name = sys.argv[1]
-        extracted_data = extract_data(file_name)
-        url_list = parse_url(extracted_data)
+        file_name = sys.argv[1] # Checking for the filename to parse
+        extracted_data = extract_data(file_name) # Unpickling data from the file
+        url_list = parse_url(extracted_data) # Parsing the data for the URLs
 
+        # Main loop to check the URLs, status codes and URL redirects
         while True:
             checked_urls = check_url(url_list)
 
@@ -27,27 +30,38 @@ def main():
         logger.error(e)
 
 
-# Extracting raw strings from the given file and addind them to a list for further processing
-def extract_data(filename: str) -> list:
+
+def extract_data(filename: str) -> list[str]:
+    """ Unpickles raw strings from the given file and addind them to a list for further processing
+
+    Parameters:
+    filename (str): the name of the file one would like to unpickle
+
+    Returns:
+    list[str]: returns list of strings 
+    """
 
     data = []
+    if os.path.exists(f'./{filename}'):
+        try:
+            with open(filename, 'rb') as file:
+                data = pickle.load(file)
+            return data
 
-    try:
-        with open(filename, 'rb') as file:
-            data = pickle.load(file)
-        return data
+        except pickle.UnpicklingError:
+            logger.error(f'File -{filename}- can not be unpickled.')
+            sys.exit(1)
 
-    except pickle.UnpicklingError:
-        logger.error(f'File -{filename}- can not be unpickled.')
-        return None
-
-    except Exception as e:
-        logger.error(e)
-        return None
+        except Exception as e:
+            logger.error(e)
+            sys.exit(1)
+    else:
+        logger.error(f'File path "./{filename}" does not exist. Please check the spelling')
+        sys.exit(1)
 
 
 # Parsing the data to find all existing URLs from the extracted data
-def parse_url(data: list) -> list:
+def parse_url(data: list[str]) -> list:
 
     try:
         if data is not None:
@@ -65,7 +79,7 @@ def parse_url(data: list) -> list:
     except Exception as e:
         logger.error(e)
     
-# Checking the acccessibility of the parsed URLs and their endpoint addresses
+# Function to check the acccessibility of the parsed URLs and their endpoint addresses
 def check_url(parsed_list: list) -> list[dict]:
 
     checked_urls = {}
@@ -91,6 +105,7 @@ def check_url(parsed_list: list) -> list[dict]:
 
     else:
         return [{},{}] 
+
 
 if __name__ == '__main__':
     main()

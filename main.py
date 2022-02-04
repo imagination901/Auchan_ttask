@@ -20,7 +20,7 @@ def main():
         while True:
             checked_urls = check_url(url_list)
 
-            for i in checked_urls:
+            for i in checked_urls: # The len of output dicts
                 print(len(i))
 
     except IndexError:
@@ -30,15 +30,14 @@ def main():
         logger.error(e)
 
 
-
 def extract_data(filename: str) -> list[str]:
-    """ Unpickles raw strings from the given file and addind them to a list for further processing
+    """ Unpickles raw strings from the given file and addind them to a list for further processing.
 
     Parameters:
-    filename (str): the name of the file one would like to unpickle
+    filename (str): the name of the file one would like to unpickle.
 
     Returns:
-    list[str]: returns list of strings 
+    list[str]: returns list of strings.
     """
 
     data = []
@@ -60,9 +59,15 @@ def extract_data(filename: str) -> list[str]:
         sys.exit(1)
 
 
-# Parsing the data to find all existing URLs from the extracted data
 def parse_url(data: list[str]) -> list:
+    """ Parses the input data to find all existing URLs.
 
+    Parameters:
+    data (list[str]): list of strings to find URLs in.
+
+    Returns:
+    list: returns list of curated individual URLs.
+    """
     try:
         if data is not None:
             urls = []
@@ -81,7 +86,17 @@ def parse_url(data: list[str]) -> list:
     
 # Function to check the acccessibility of the parsed URLs and their endpoint addresses
 def check_url(parsed_list: list) -> list[dict]:
+    """ Checks the accessibility of URLs, their HTTP response codes, 
+        and their endpoint URL addresses after nested redirects.
 
+    Parameters:
+    parsed_list(list): list containigs individual URLs as strings.
+
+    Returns:
+    list[dict]: returns a list of dicts. 
+                dict0[url: str] = status_code: int, 
+                dict1[original_url: str] = final_url_after_redirect: str
+    """
     checked_urls = {}
     endpoint_urls = {}
 
